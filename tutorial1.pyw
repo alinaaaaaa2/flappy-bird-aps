@@ -19,6 +19,7 @@ font = pygame.font.SysFont('Bauhaus 93', 60)
 
 #define colors
 white = (255, 255, 255)
+black=(0,0,0)
 
 #defining game variables and system variables
 ground_scroll = 0
@@ -30,7 +31,8 @@ pipe_frequency = 1500 #milliseconds
 last_pipe = pygame.time.get_ticks() - pipe_frequency
 score = 0 #to keep track of the score
 pass_pipe = False
-
+game_paused = False
+pause_font = pygame.font.SysFont('Bauhaus 93', 60)
 #load images
 bg = pygame.image.load('img/bg.png')
 ground = pygame.image.load('img/ground.png')
@@ -72,50 +74,52 @@ class Bird(pygame.sprite.Sprite): #draws upon an existing class Sprite from pyga
 
     def update(self): #overiding an adding to the empty update function in Sprites class
         #cap the velocity to a max of 8
-        if flying == True:
-            self.velocity += 0.5
-            if self.velocity > 8:
-                self.velocity = 8
+        # Only update bird if game is not paused
+        if not game_paused:
+            if flying == True:
+                self.velocity += 0.5
+                if self.velocity > 8:
+                    self.velocity = 8
+            
         
-    
 
-    
-
-            
-            """Over here we change the velocity(y coordinate) of the bird to simulate gravity
-            and make it fall down the screen. we use our previous image rectangle stored in
-            self.rect and increase its y value by the velocity calculated above"""
-            if self.rect.bottom < 768:
-                self.rect.y += int(self.velocity)
         
-        #jump
-        if game_over == False:
+
+                
+                """Over here we change the velocity(y coordinate) of the bird to simulate gravity
+                and make it fall down the screen. we use our previous image rectangle stored in
+                self.rect and increase its y value by the velocity calculated above"""
+                if self.rect.bottom < 768:
+                    self.rect.y += int(self.velocity)
             
-            if pygame.mouse.get_pressed()[0] ==1 and self.clicked == False: #if left space is pressed
-                self.clicked = True
-                self.velocity = -10 #negative velocity to move the bird up
-            if pygame.mouse.get_pressed()[0] == 0:
-                self.clicked = False
-            #print(self.velocity)
+            #jump
+            if game_over == False:
+            
+                if pygame.mouse.get_pressed()[0] ==1 and self.clicked == False: #if left space is pressed
+                    self.clicked = True
+                    self.velocity = -10 #negative velocity to move the bird up
+                if pygame.mouse.get_pressed()[0] == 0:
+                    self.clicked = False
+                #print(self.velocity)
             
 
 
 
 
-            #handling the animation, using counter which  countrols the animation cycle
-            self.counter += 1 #increment by one everytime update is called
-            flap_cool = 5
+                #handling the animation, using counter which  countrols the animation cycle
+                self.counter += 1 #increment by one everytime update is called
+                flap_cool = 5
 
-            if self.counter > flap_cool:
-                self.counter = 0 #reset counter
-                self.index += 1  #move to the next image index
-                self.index = 0 if self.index > 2 else self.index #reset index to 0 if it exceeds 2 (since we have 3 images indexed 0,1,2)
-            self.image = self.images[self.index] #update the current image to the new index  
+                if self.counter > flap_cool:
+                    self.counter = 0 #reset counter
+                    self.index += 1  #move to the next image index
+                    self.index = 0 if self.index > 2 else self.index #reset index to 0 if it exceeds 2 (since we have 3 images indexed 0,1,2)
+                self.image = self.images[self.index] #update the current image to the new index  
 
-            #rotate the bird based on its position
-            self.image = pygame.transform.rotate(self.images[self.index], -self.velocity * 2)
-        else:
-            self.image = pygame.transform.rotate(self.images[self.index], -90)
+                #rotate the bird based on its position
+                self.image = pygame.transform.rotate(self.images[self.index], -self.velocity * 2)
+            else:
+                self.image = pygame.transform.rotate(self.images[self.index], -90)
 
 class Pipe(pygame.sprite.Sprite):
     def __init__(self, x, y, position):
@@ -155,6 +159,38 @@ class Button():
         screen.blit(self.image, (self.rect.x, self.rect.y))
 
         return action 
+class PauseButton:
+    def __init__(self, x, y, width, height, text):
+        self.rect = pygame.Rect(x, y, width, height)
+        self.text = text
+        self.color = (100, 100, 255)
+        self.hover_color = (150, 150, 255)
+        self.text_color = white
+        self.font = pygame.font.SysFont('Bauhaus 93', 30)
+    
+    def draw(self, screen):
+        # Check if mouse is hovering
+        mouse_pos = pygame.mouse.get_pos()
+        if self.rect.collidepoint(mouse_pos):
+            color = self.hover_color
+        else:
+            color = self.color
+            
+        # Draw button
+        pygame.draw.rect(screen, color, self.rect, border_radius=10)
+        pygame.draw.rect(screen, white, self.rect, 2, border_radius=10)
+        
+        # Draw text
+        text_surf = self.font.render(self.text, True, self.text_color)
+        text_rect = text_surf.get_rect(center=self.rect.center)
+        screen.blit(text_surf, text_rect)
+        
+        return self.rect.collidepoint(mouse_pos)
+    
+    def is_clicked(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            return self.rect.collidepoint(event.pos)
+        return False
 
 """Constructing the bird and pipe GROUP using pygame GROUP using the sprite class"""
 bird_group = pygame.sprite.Group()
@@ -171,6 +207,8 @@ bird_group.add(flappy)
 
 #create restart button instance
 button = Button(screen_width//2 -50, screen_height//2 - 100, button_img)
+# Create pause button (top right corner)
+pause_button = PauseButton(screen_width - 120, 20, 100, 40, "Pause")
 
 
 """Making the game loop with WHILE"""
@@ -178,8 +216,48 @@ run = True
 while run:
     clock.tick(fps)
     #draw the background image at (0,0) which is top left corner
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            run = False
+        if pause_button.is_clicked(event):
+            game_paused = not game_paused  # Toggle pause state
+         # Only handle game events if not paused
+        if not game_paused:
+        #check if event is keydown and kescape is in event.key
+            
+            # ADD THIS FOR SPACEBAR
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    if not flying and not game_over:
+                        flying = True
+                    if flying and not game_over:
+                        flappy.velocity = -10
+            if event.type == pygame.MOUSEBUTTONDOWN and not flying and not game_over:
+                flying = True
     """blit function runs in the while loop endlessly"""
     screen.blit(bg, (0, 0))
+    # Draw pause button (always visible)
+    is_hovering = pause_button.draw(screen)
+     # If game is paused, show pause screen and skip game logic
+    if game_paused:
+        # Draw semi-transparent overlay
+        overlay = pygame.Surface((screen_width, screen_height), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 128))  # Semi-transparent black
+        screen.blit(overlay, (0, 0))
+        
+        # Draw "PAUSED" text
+        pause_text = pause_font.render("PAUSED", True, white)
+        screen.blit(pause_text, (screen_width//2 - pause_text.get_width()//2, 
+                                screen_height//2 - pause_text.get_height()//2))
+        
+        # Draw resume instructions
+        resume_font = pygame.font.SysFont('Bauhaus 93', 30)
+        resume_text = resume_font.render("Click Pause Button to Resume", True, white)
+        screen.blit(resume_text, (screen_width//2 - resume_text.get_width()//2, 
+                                 screen_height//2 + 60))
+        
+        pygame.display.update()
+        continue 
     #draw the bird group, draw() is a built in sprite function
     bird_group.draw(screen)
     bird_group.update() #update the bird group to call the update method in Bird class
@@ -200,7 +278,7 @@ while run:
                 score +=1 
                 pass_pipe = False
 
-    draw_text(str(score), font, white, int(screen_width/2), 20)
+    draw_text("SCORE: "+str(score), font, black, int(screen_width/2.7), 20)
 
     #look for collision
     if pygame.sprite.groupcollide(bird_group, pipe_group, False, False) or flappy.rect.top < 0:
@@ -211,7 +289,8 @@ while run:
         game_over, flying = True, False
 
     
-    if not game_over and flying:
+    # Only run game logic if not paused and game is active
+    if not game_paused and not game_over and flying:
 
         #generate new pipes
         time_now = pygame.time.get_ticks()
@@ -237,17 +316,10 @@ while run:
         if button.draw() == True:
             game_over = False
             score = reset_game()
-    #handle the loop run with event handlers
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            run = False
-        #check if event is keydown and kescape is in event.key
-        if event.type == pygame.MOUSEBUTTONDOWN and not flying and not game_over:
-            flying = True 
-        
+
     if flappy.rect.bottom >=  768:
         game_over, flying = True, False
-        
+    
     
     
     pygame.display.update()
