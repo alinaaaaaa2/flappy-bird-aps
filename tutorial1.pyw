@@ -37,6 +37,7 @@ pause_font = pygame.font.SysFont('Bauhaus 93', 60)
 bg = pygame.image.load('img/bg.png')
 ground = pygame.image.load('img/ground.png')
 button_img = pygame.image.load('img/restart.png') #within the imd directory
+game_over_img = pygame.image.load('img/PC _ Computer - Undertale - Miscellaneous - Game Over.png') #game over image
 
 
 
@@ -206,7 +207,7 @@ bird_group.add(flappy) #adding the bird instance to the bird group
 bird_group.add(flappy)
 
 #create restart button instance
-button = Button(screen_width//2 -50, screen_height//2 - 100, button_img)
+button = Button(screen_width//2 -45, screen_height//2 + 100, button_img)
 # Create pause button (top right corner)
 pause_button = PauseButton(screen_width - 120, 20, 100, 40, "Pause")
 
@@ -313,6 +314,9 @@ while run:
 
     #check for game over and reset
     if game_over == True:
+         # Draw game over sprite 
+        screen.blit(game_over_img, (screen_width//2 - game_over_img.get_width()//2, screen_height//3 - game_over_img.get_height()//2))
+        
         if button.draw() == True:
             game_over = False
             score = reset_game()
