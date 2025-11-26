@@ -1,0 +1,7 @@
+# Code Citations for tutorial1.pyw
+
+1. Coding with Russ: Flappy Bird Pygame Tutorial
+https://github.com/russs123/flappy_bird
+
+2. Assests from Max Rohowsky
+https://github.com/maxrohowsky/flappy-bird/tree/master/assets

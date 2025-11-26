@@ -6,7 +6,7 @@ import random
 pygame.init()
 
 clock = pygame.time.Clock()
-fps = 60 #set frames per second to control the game speed
+fps = 70 #set frames per second to control the game speed
 
 screen_width = 700
 screen_height = 700
@@ -16,28 +16,34 @@ pygame.display.set_caption('Flappy Bird')
 
 #define font
 font = pygame.font.SysFont('Bauhaus 93', 60)
+pause_font = pygame.font.SysFont('Bauhaus 93', 60, bold=True)
+small_font = pygame.font.SysFont('Bauhaus 93', 32)   # smaller font for leaderboard
 
 #define colors
 white = (255, 255, 255)
-black=(0,0,0)
+black = (0,0,0)
+gold = (255, 215, 0)
 
 #defining game variables and system variables
 ground_scroll = 0
-scroll_speed = 4
+scroll_speed = 3
 flying = False 
 game_over = False
-pipe_gap = 150
+pipe_gap = 230
 pipe_frequency = 1500 #milliseconds
 last_pipe = pygame.time.get_ticks() - pipe_frequency
 score = 0 #to keep track of the score
 pass_pipe = False
 game_paused = False
-pause_font = pygame.font.SysFont('Bauhaus 93', 60)
+
+leaderboard = [0, 0, 0]  # Add leaderboard
+
+bg_scroll = 0
 #load images
-bg = pygame.image.load('img/bg.png')
+background = pygame.image.load('img/bg.png')
 ground = pygame.image.load('img/ground.png')
 button_img = pygame.image.load('img/restart.png') #within the imd directory
-game_over_img = pygame.image.load('img/PC _ Computer - Undertale - Miscellaneous - Game Over.png') #game over image
+game_over_img = pygame.image.load('img/Game Over.png') #game over image
 
 
 
@@ -54,8 +60,11 @@ def reset_game():
     score = 0 
     return score
 
-
-
+def update_leaderboard(score):  # Updates leaderboard by inserting the new score,
+    global leaderboard
+    leaderboard.append(score)
+    leaderboard = sorted(leaderboard, reverse=True)[:3]   
+    #sorting it in descending order, and keeping only top 3 scores.
 
 class Bird(pygame.sprite.Sprite): #draws upon an existing class Sprite from pygame library
     def __init__(self, x, y):
@@ -64,7 +73,7 @@ class Bird(pygame.sprite.Sprite): #draws upon an existing class Sprite from pyga
         self.index = 0 #indexer to keep track of the current image index
         self.counter = 0 #counter to control the speed at which the animation RUNS/CYCLES whateverrrr
         for num in range(3):
-            image = self.image = pygame.image.load(f'img/bird{num+1}.png')
+            image = pygame.image.load(f'img/bird{num+1}.png').convert_alpha() #loading multiple images for animation
             self.images.append(image) #append each loaded image to the images list
         
         self.image = self.images[self.index] #set the current image to the first image in the list 
@@ -78,7 +87,7 @@ class Bird(pygame.sprite.Sprite): #draws upon an existing class Sprite from pyga
         # Only update bird if game is not paused
         if not game_paused:
             if flying == True:
-                self.velocity += 0.5
+                self.velocity += 0.5 #increase the velocity to make the bird fall down
                 if self.velocity > 8:
                     self.velocity = 8
             
@@ -125,7 +134,8 @@ class Bird(pygame.sprite.Sprite): #draws upon an existing class Sprite from pyga
 class Pipe(pygame.sprite.Sprite):
     def __init__(self, x, y, position):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load('img/pipe.png')
+        self.image = pygame.image.load('img/pipe.png').convert_alpha()
+        self.image = pygame.transform.scale(self.image, (87, 568))
         self.rect = self.image.get_rect()
         #position 1 is from the top, -1 is from the bottom
         if position == 1:
@@ -208,15 +218,14 @@ bird_group.add(flappy)
 
 #create restart button instance
 button = Button(screen_width//2 -45, screen_height//2 + 100, button_img)
-# Create pause button (top right corner)
-pause_button = PauseButton(screen_width - 120, 20, 100, 40, "Pause")
+# Create pause button (top left corner)
+pause_button = PauseButton(20, 20, 100, 40, "||")
 
 
 """Making the game loop with WHILE"""
 run = True 
 while run:
     clock.tick(fps)
-    #draw the background image at (0,0) which is top left corner
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
@@ -236,7 +245,8 @@ while run:
             if event.type == pygame.MOUSEBUTTONDOWN and not flying and not game_over:
                 flying = True
     """blit function runs in the while loop endlessly"""
-    screen.blit(bg, (0, 0))
+    #draw the background image at (0,0) which is top left corner
+    screen.blit(background, (bg_scroll, 0))
     # Draw pause button (always visible)
     is_hovering = pause_button.draw(screen)
      # If game is paused, show pause screen and skip game logic
@@ -247,12 +257,12 @@ while run:
         screen.blit(overlay, (0, 0))
         
         # Draw "PAUSED" text
-        pause_text = pause_font.render("PAUSED", True, white)
+        pause_text = pause_font.render("||", True, white)
         screen.blit(pause_text, (screen_width//2 - pause_text.get_width()//2, 
                                 screen_height//2 - pause_text.get_height()//2))
         
         # Draw resume instructions
-        resume_font = pygame.font.SysFont('Bauhaus 93', 30)
+        resume_font = pygame.font.SysFont('Bauhaus 93', 30, bold=True)
         resume_text = resume_font.render("Click Pause Button to Resume", True, white)
         screen.blit(resume_text, (screen_width//2 - resume_text.get_width()//2, 
                                  screen_height//2 + 60))
@@ -279,17 +289,22 @@ while run:
                 score +=1 
                 pass_pipe = False
 
-    draw_text("SCORE: "+str(score), font, black, int(screen_width/2.7), 20)
+    draw_text("SCORE "+str(score), font, white, int(screen_width/2.7), 20)
+
+    # DRAW LEADERBOARD (TOP RIGHT)
+    y_offset = 20  # starting y-position for the leaderboard text
+    leaderboard_x = screen_width - 160  # move leaderboard further right
+    draw_text("Top Scores", small_font, white, leaderboard_x, y_offset)
+    for i, s in enumerate(leaderboard):
+        draw_text(f"{i+1}. {s}", small_font, white, leaderboard_x, y_offset + 35 * (i+1))
 
     #look for collision
     if pygame.sprite.groupcollide(bird_group, pipe_group, False, False) or flappy.rect.top < 0:
         game_over = True
 
-    #check if the bird has hit the ground
     if flappy.rect.bottom >=  768:
         game_over, flying = True, False
 
-    
     # Only run game logic if not paused and game is active
     if not game_paused and not game_over and flying:
 
@@ -305,10 +320,10 @@ while run:
             last_pipe = time_now
 
         
-        #draw and scroll the ground
-        ground_scroll -= scroll_speed # keep on decreasing and moving the ground to the left
-        if abs(ground_scroll) > 35: #reset the ground scroll to 0 after it moves 35 pixels to left
-            ground_scroll = 0
+        #draw and scroll the background
+        bg_scroll += scroll_speed # keep on increasing the scroll value to move ground to the right
+        if abs(bg_scroll) > 35: #reset the background scroll to 0 after it has scrolled 75 pixels
+            bg_scroll = 0
         #generate pipes
         pipe_group.update()
 
@@ -319,6 +334,7 @@ while run:
         
         if button.draw() == True:
             game_over = False
+            update_leaderboard(score)  # Update leaderboard on restart
             score = reset_game()
 
     if flappy.rect.bottom >=  768:
