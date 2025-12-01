@@ -1,7 +1,11 @@
 # Code Citations for tutorial1.pyw
 
-1. Coding with Russ: Flappy Bird Pygame Tutorial
+1. Coding with Russ: Flappy Bird Pygame Tutorial and Inspiration from the following github repo:
 https://github.com/russs123/flappy_bird
 
-2. Assests from Max Rohowsky
+2. Assets from Max Rohowsky
 https://github.com/maxrohowsky/flappy-bird/tree/master/assets
+
+3. Pipe sprites and background images from:
+https://aistudio.google.com/models/gemini-2-5-flash-image
+
